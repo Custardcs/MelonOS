@@ -81,8 +81,6 @@ Contributions are welcome, especially in the following areas:
 - Security design and implementation
 - Cross-platform architecture
 
-Please see CONTRIBUTING.md for detailed information on how to get involved.
-
 ## FAQ
 
 **Q: Why build a completely new OS instead of modifying Linux or another existing system?**
