@@ -1,0 +1,11 @@
+// Create a new project structure
+// uefi_bootloader/Cargo.toml
+[package]
+name = "uefi-bootloader"
+version = "0.0.1"
+edition = "2025"
+
+[dependencies]
+uefi = "0.19.0"           # UEFI interface library
+uefi-services = "0.16.0"  # UEFI service implementations
+log = "0.4.17"            # Logging infrastructure
