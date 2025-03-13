@@ -3,7 +3,7 @@
 [package]
 name = "uefi-bootloader"
 version = "0.0.1"
-edition = "2025"
+edition = "2021"
 
 [dependencies]
 uefi = "0.19.0"           # UEFI interface library

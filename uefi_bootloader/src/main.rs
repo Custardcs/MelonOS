@@ -19,6 +19,9 @@ mod aarch64;
 // Common module for shared functionality
 mod common;
 
+// ELF parsing module
+mod elf;
+
 // This function is called on panic
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -183,7 +186,7 @@ fn load_kernel(
     let elf_buffer_addr = boot_services
         .allocate_pages(
             AllocateType::AnyPages,
-            MemoryType::LOADER_DATA,
+            MemoryType::KERNEL_DATA,
             (file_size + 0xFFF) / 0x1000, // Round up to the next page
         )
         .map_err(|_| Status::OUT_OF_RESOURCES)?;
@@ -194,7 +197,7 @@ fn load_kernel(
         .read(&mut buffer)
         .map_err(|_| Status::DEVICE_ERROR)?;
     
-    // Parse the ELF header
+    // Parse the ELF header - use the elf module now
     let elf_header = unsafe { &*(elf_buffer_addr as *const elf::ElfHeader) };
     
     if !elf_header.is_valid() {
@@ -222,7 +225,7 @@ fn load_kernel(
         let segment_addr = boot_services
             .allocate_pages(
                 AllocateType::AnyPages,
-                MemoryType::LOADER_DATA,
+                MemoryType::KERNEL_DATA,
                 pages as usize,
             )
             .map_err(|_| Status::OUT_OF_RESOURCES)?;
@@ -254,39 +257,3 @@ fn load_kernel(
     Ok(elf_header.entry_point)
 }
 
-// Simple ELF header parser
-mod elf {
-    #[repr(C)]
-    pub struct ElfHeader {
-        e_ident: [u8; 16],
-        e_type: u16,
-        e_machine: u16,
-        e_version: u32,
-        pub entry_point: u64,
-        e_phoff: u64,
-        e_shoff: u64,
-        e_flags: u32,
-        e_ehsize: u16,
-        e_phentsize: u16,
-        e_phnum: u16,
-        e_shentsize: u16,
-        e_shnum: u16,
-        e_shstrndx: u16,
-    }
-    
-    impl ElfHeader {
-        pub fn is_valid(&self) -> bool {
-            // Check ELF magic number
-            self.e_ident[0] == 0x7F &&
-            self.e_ident[1] == b'E' &&
-            self.e_ident[2] == b'L' &&
-            self.e_ident[3] == b'F' &&
-            // Check 64-bit
-            self.e_ident[4] == 2 &&
-            // Check little-endian
-            self.e_ident[5] == 1 &&
-            // Check executable
-            self.e_type == 2
-        }
-    }
-}
