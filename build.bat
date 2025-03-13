@@ -24,6 +24,10 @@ if "%ARCH%"=="x86_64" (
     if exist .cargo\config.toml.x86_64 (
         copy /Y .cargo\config.toml.x86_64 .cargo\config.toml
     )
+    
+    REM Copy the linker script to the root directory
+    copy /Y link.ld ..\link.ld
+    
     cargo +nightly build --release
     if %ERRORLEVEL% neq 0 (
         echo Failed to build kernel
@@ -40,7 +44,9 @@ if not exist esp\EFI mkdir esp\EFI
 if not exist esp\EFI\BOOT mkdir esp\EFI\BOOT
 if not exist esp\EFI\KERNEL mkdir esp\EFI\KERNEL
 
-copy uefi_bootloader\target\x86_64-unknown-uefi\release\uefi-bootloader.efi esp\EFI\BOOT\BOOTX64.EFI
-copy kernel\target\%ARCH%-unknown-none\release\test-kernel esp\EFI\KERNEL\%KERNEL_NAME%
+copy /Y uefi_bootloader\target\x86_64-unknown-uefi\release\uefi_bootloader.efi esp\EFI\BOOT\BOOTX64.EFI
+copy /Y kernel\target\x86_64-unknown-none\release\kernel esp\EFI\KERNEL\%KERNEL_NAME%
 
-echo Files prepared. Run disk creation separately if needed.
+echo Build completed successfully. Files ready at esp\ directory.
+echo To test in QEMU, run the following command:
+echo qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M

@@ -1,13 +1,12 @@
 // uefi_bootloader/src/common.rs
-use uefi::prelude::*;
 use uefi::table::boot::MemoryDescriptor;
 
 // Structure to pass information to the kernel
 #[repr(C)]
 pub struct BootInfo {
-    memory_map_addr: u64,
-    memory_map_size: usize,
-    memory_map_entry_size: usize,
+    pub memory_map_addr: u64,
+    pub memory_map_size: usize,
+    pub memory_map_entry_size: usize,
     pub framebuffer_addr: u64,
     pub framebuffer_width: usize,
     pub framebuffer_height: usize,
@@ -32,6 +31,8 @@ impl BootInfo {
     }
     
     pub fn memory_map<'a>(&self) -> &'a [MemoryDescriptor] {
+        // This function is inherently unsafe because it creates a reference from a raw pointer
+        // with a lifetime not tied to any existing data
         unsafe {
             core::slice::from_raw_parts(
                 self.memory_map_addr as *const MemoryDescriptor,
