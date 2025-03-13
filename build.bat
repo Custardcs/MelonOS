@@ -1,15 +1,19 @@
 @echo off
-REM Simple build script for MelonOS
+REM Simple build script for MelonOS with correct paths
+
+REM Set project root directory
+set PROJECT_ROOT=%CD%
+echo Project root is: %PROJECT_ROOT%
 
 echo Building UEFI bootloader with nightly toolchain...
 cd uefi_bootloader
 cargo +nightly build --target x86_64-unknown-uefi --release
 if %ERRORLEVEL% neq 0 (
     echo Failed to build bootloader
-    cd ..
+    cd %PROJECT_ROOT%
     exit /b %ERRORLEVEL%
 )
-cd ..
+cd %PROJECT_ROOT%
 
 echo Building test kernel...
 cd kernel
@@ -26,27 +30,78 @@ if "%ARCH%"=="x86_64" (
     )
     
     REM Copy the linker script to the root directory
-    copy /Y link.ld ..\link.ld
+    copy /Y link.ld %PROJECT_ROOT%\link.ld
     
     cargo +nightly build --release
     if %ERRORLEVEL% neq 0 (
         echo Failed to build kernel
-        cd ..
+        cd %PROJECT_ROOT%
         exit /b %ERRORLEVEL%
     )
     set KERNEL_NAME=KERNEL_X64.ELF
 )
-cd ..
+cd %PROJECT_ROOT%
 
 echo Setting up disk image files...
-if not exist esp mkdir esp
-if not exist esp\EFI mkdir esp\EFI
-if not exist esp\EFI\BOOT mkdir esp\EFI\BOOT
-if not exist esp\EFI\KERNEL mkdir esp\EFI\KERNEL
+echo Current directory: %CD%
 
-copy /Y uefi_bootloader\target\x86_64-unknown-uefi\release\uefi_bootloader.efi esp\EFI\BOOT\BOOTX64.EFI
-copy /Y kernel\target\x86_64-unknown-none\release\kernel esp\EFI\KERNEL\%KERNEL_NAME%
+REM Create ESP directory structure with explicit paths
+echo Creating ESP directory structure...
+if not exist %PROJECT_ROOT%\esp (
+    echo Creating esp directory
+    mkdir %PROJECT_ROOT%\esp
+)
 
-echo Build completed successfully. Files ready at esp\ directory.
+if not exist %PROJECT_ROOT%\esp\EFI (
+    echo Creating esp\EFI directory
+    mkdir %PROJECT_ROOT%\esp\EFI
+)
+
+if not exist %PROJECT_ROOT%\esp\EFI\BOOT (
+    echo Creating esp\EFI\BOOT directory
+    mkdir %PROJECT_ROOT%\esp\EFI\BOOT
+)
+
+if not exist %PROJECT_ROOT%\esp\EFI\KERNEL (
+    echo Creating esp\EFI\KERNEL directory
+    mkdir %PROJECT_ROOT%\esp\EFI\KERNEL
+)
+
+REM Check source files existence with CORRECT PATHS
+echo Checking source files...
+if exist %PROJECT_ROOT%\target\x86_64-unknown-uefi\release\uefi_bootloader.efi (
+    echo Bootloader EFI file exists
+) else (
+    echo ERROR: Bootloader EFI file does not exist!
+)
+
+if exist %PROJECT_ROOT%\target\x86_64-unknown-none\release\kernel (
+    echo Kernel file exists
+) else (
+    echo ERROR: Kernel file does not exist!
+)
+
+REM Copy files with CORRECT PATHS
+echo Copying bootloader file...
+copy /Y "%PROJECT_ROOT%\target\x86_64-unknown-uefi\release\uefi_bootloader.efi" "%PROJECT_ROOT%\esp\EFI\BOOT\BOOTX64.EFI"
+
+echo Copying kernel file...
+copy /Y "%PROJECT_ROOT%\target\x86_64-unknown-none\release\kernel" "%PROJECT_ROOT%\esp\EFI\KERNEL\%KERNEL_NAME%"
+
+REM Check destination files existence
+echo Verifying copied files...
+if exist "%PROJECT_ROOT%\esp\EFI\BOOT\BOOTX64.EFI" (
+    echo BOOTX64.EFI copied successfully
+) else (
+    echo ERROR: BOOTX64.EFI not found in destination!
+)
+
+if exist "%PROJECT_ROOT%\esp\EFI\KERNEL\%KERNEL_NAME%" (
+    echo Kernel file copied successfully
+) else (
+    echo ERROR: Kernel file not found in destination!
+)
+
+echo Build completed. Files ready at esp\ directory.
 echo To test in QEMU, run the following command:
 echo qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M
