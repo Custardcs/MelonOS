@@ -19,6 +19,14 @@ pub struct BootInfo {
 // This is our kernel entry point
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
+    // Instead of an infinite loop, just do one iteration to introduce a small delay
+    for _ in 0..1000000 {
+        unsafe {
+            core::arch::asm!("nop");
+        }
+    }
+
+
     // Draw a simple pattern on the framebuffer to show we're alive
     let fb = unsafe {
         core::slice::from_raw_parts_mut(
@@ -37,7 +45,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     for y in 0..boot_info.framebuffer_height {
         for x in 0..boot_info.framebuffer_width {
             let offset = y * boot_info.framebuffer_stride + x;
-            
+
             if offset < fb.len() {
                 // Create a color pattern
                 let color = match (x / 80, y / 80) {
@@ -46,7 +54,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
                     (2, _) => blue,
                     _ => white,
                 };
-                
+
                 fb[offset] = color;
             }
         }

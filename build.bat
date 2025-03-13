@@ -29,9 +29,6 @@ if "%ARCH%"=="x86_64" (
         copy /Y .cargo\config.toml.x86_64 .cargo\config.toml
     )
     
-    REM Copy the linker script to the root directory
-    copy /Y link.ld %PROJECT_ROOT%\link.ld
-    
     cargo +nightly build --release
     if %ERRORLEVEL% neq 0 (
         echo Failed to build kernel
@@ -67,41 +64,45 @@ if not exist %PROJECT_ROOT%\esp\EFI\KERNEL (
     mkdir %PROJECT_ROOT%\esp\EFI\KERNEL
 )
 
-REM Check source files existence with CORRECT PATHS
+REM Check source files existence
 echo Checking source files...
 if exist %PROJECT_ROOT%\target\x86_64-unknown-uefi\release\uefi_bootloader.efi (
     echo Bootloader EFI file exists
 ) else (
-    echo ERROR: Bootloader EFI file does not exist!
+    echo ERROR: Bootloader EFI file does not exist at %PROJECT_ROOT%\target\x86_64-unknown-uefi\release\uefi_bootloader.efi!
+    exit /b 1
 )
 
 if exist %PROJECT_ROOT%\target\x86_64-unknown-none\release\kernel (
     echo Kernel file exists
 ) else (
-    echo ERROR: Kernel file does not exist!
+    echo ERROR: Kernel file does not exist at %PROJECT_ROOT%\target\x86_64-unknown-none\release\kernel!
+    exit /b 1
 )
 
-REM Copy files with CORRECT PATHS
+REM Copy files
 echo Copying bootloader file...
 copy /Y "%PROJECT_ROOT%\target\x86_64-unknown-uefi\release\uefi_bootloader.efi" "%PROJECT_ROOT%\esp\EFI\BOOT\BOOTX64.EFI"
 
 echo Copying kernel file...
 copy /Y "%PROJECT_ROOT%\target\x86_64-unknown-none\release\kernel" "%PROJECT_ROOT%\esp\EFI\KERNEL\%KERNEL_NAME%"
 
-REM Check destination files existence
+REM Check destination files
 echo Verifying copied files...
 if exist "%PROJECT_ROOT%\esp\EFI\BOOT\BOOTX64.EFI" (
     echo BOOTX64.EFI copied successfully
 ) else (
     echo ERROR: BOOTX64.EFI not found in destination!
+    exit /b 1
 )
 
 if exist "%PROJECT_ROOT%\esp\EFI\KERNEL\%KERNEL_NAME%" (
     echo Kernel file copied successfully
 ) else (
     echo ERROR: Kernel file not found in destination!
+    exit /b 1
 )
 
 echo Build completed. Files ready at esp\ directory.
 echo To test in QEMU, run the following command:
-echo qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M
+echo qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M -debugcon stdio
