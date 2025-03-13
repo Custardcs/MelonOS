@@ -1,0 +1,14 @@
+# kernel/Cargo.toml
+[package]
+name = "kernel" # This must match what's in your workspace dependencies
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[dependencies]
+# We have no external dependencies - this is a minimal kernel

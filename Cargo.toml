@@ -1,6 +1,9 @@
-[package]
-name = "hello"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "uefi_bootloader",
+    "kernel"
+]
+resolver = "2"
 
-[dependencies]
+# You can keep this if you need it for dependencies between workspace members
+[workspace.dependencies]
