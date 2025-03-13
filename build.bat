@@ -104,5 +104,4 @@ if exist "%PROJECT_ROOT%\esp\EFI\KERNEL\%KERNEL_NAME%" (
 )
 
 echo Build completed. Files ready at esp\ directory.
-echo To test in QEMU, run the following command:
-echo qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M -debugcon stdio
+qemu-system-x86_64 -drive file=fat:rw:esp,format=raw -bios OVMF.fd -m 128M -debugcon stdio

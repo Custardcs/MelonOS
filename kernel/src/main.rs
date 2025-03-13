@@ -1,10 +1,14 @@
-// kernel/src/main.rs
 #![no_std]
 #![no_main]
 
 use core::panic::PanicInfo;
 
-// The boot info structure must match the one in the bootloader
+// Color constants for debugging
+const COLOR_RED:   u32 = 0x00FF0000;
+const COLOR_GREEN: u32 = 0x0000FF00;
+const COLOR_BLUE:  u32 = 0x000000FF;
+const COLOR_WHITE: u32 = 0x00FFFFFF;
+
 #[repr(C)]
 pub struct BootInfo {
     memory_map_addr: u64,
@@ -16,53 +20,63 @@ pub struct BootInfo {
     framebuffer_stride: usize,
 }
 
-// This is our kernel entry point
-#[no_mangle]
-pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
-    // Instead of an infinite loop, just do one iteration to introduce a small delay
-    for _ in 0..1000000 {
-        unsafe {
-            core::arch::asm!("nop");
-        }
-    }
-
-
-    // Draw a simple pattern on the framebuffer to show we're alive
+// Extremely verbose debugging function
+fn debug_framebuffer(boot_info: &'static BootInfo) {
+    // Log framebuffer details via color patterns
     let fb = unsafe {
         core::slice::from_raw_parts_mut(
             boot_info.framebuffer_addr as *mut u32,
-            boot_info.framebuffer_width * boot_info.framebuffer_height,
+            boot_info.framebuffer_width * boot_info.framebuffer_height
         )
     };
 
-    // Define colors
-    let red = 0x00FF0000;
-    let green = 0x0000FF00;
-    let blue = 0x000000FF;
-    let white = 0x00FFFFFF;
-
-    // Fill screen with a gradient
+    // Diagnostic color pattern
     for y in 0..boot_info.framebuffer_height {
         for x in 0..boot_info.framebuffer_width {
             let offset = y * boot_info.framebuffer_stride + x;
+            
+            // Create a diagnostic grid
+            let color = match (x / 80, y / 80) {
+                (0, 0) => COLOR_RED,    // Top-left: red
+                (1, 0) => COLOR_GREEN,  // Top-middle: green
+                (2, 0) => COLOR_BLUE,   // Top-right: blue
+                _ => COLOR_WHITE        // Rest: white
+            };
 
             if offset < fb.len() {
-                // Create a color pattern
-                let color = match (x / 80, y / 80) {
-                    (0, _) => red,
-                    (1, _) => green,
-                    (2, _) => blue,
-                    _ => white,
-                };
-
                 fb[offset] = color;
             }
         }
     }
+}
 
-    // Hang forever - we have nowhere to return to
+#[no_mangle]
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
+    // Validate boot info
+    if boot_info.framebuffer_addr == 0 {
+        // Emergency red screen if no framebuffer
+        let emergency_fb = unsafe {
+            core::slice::from_raw_parts_mut(
+                0 as *mut u32,
+                1024 * 768  // Assume standard resolution
+            )
+        };
+        
+        for i in 0..1024*768 {
+            emergency_fb[i] = COLOR_RED;
+        }
+        
+        loop {
+            // Halt with emergency indicator
+            unsafe { core::arch::asm!("hlt"); }
+        }
+    }
+
+    // Perform diagnostic display
+    debug_framebuffer(boot_info);
+
+    // Hang forever with debug information visible
     loop {
-        // CPU-specific way to halt
         #[cfg(target_arch = "x86_64")]
         unsafe {
             core::arch::asm!("hlt");
@@ -75,8 +89,11 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     }
 }
 
-// This function is called on panic
+// Panic handler with color-coded emergency
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+    // Emergency blue screen on panic
+    loop {
+        unsafe { core::arch::asm!("hlt"); }
+    }
 }

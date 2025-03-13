@@ -1,7 +1,6 @@
 // uefi_bootloader/src/common.rs
 use uefi::table::boot::MemoryDescriptor;
 
-// Structure to pass information to the kernel
 #[repr(C)]
 pub struct BootInfo {
     pub memory_map_addr: u64,
